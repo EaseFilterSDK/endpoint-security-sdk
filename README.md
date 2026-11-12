@@ -1,4 +1,4 @@
-﻿# EaseFilter Comprehensive File Security SDK
+﻿# EaseFilter Endpoint File Security SDK
 
 [![Platform](https://img.shields.io/badge/Platform-Windows-blue.svg)](https://www.easefilter.com/)
 [![Language](https://img.shields.io/badge/Language-C%23%20%7C%20C%2B%2B%20%7C%20Python%20%7C%20Java%20%7C%20Rust-green.svg)](https://www.easefilter.com/kb/Programming.htm)
