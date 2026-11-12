@@ -1,203 +1,121 @@
-﻿# [Transparent On Access File Encryption](https://www.easefilter.com/kb/transparent-on-access-file-encryption-SDK.htm)
-EaseFilter Transparent On Access File Encryption SDK was implemented with the EaseFilter Encryption Filter Driver (EEFD). The EEFD provides a comprehensive security solution to develop the transparent on access file level encryption products. Encrypt the newly created files transparently. Authorize or block the on access encryption/decryption under the control of client-defined policy.
- 
-## Easefilter Encryption Filter Driver (EEFD)
+﻿# EaseFilter Comprehensive File Security SDK
 
-EEFD is a file system file level encryption filter driver. It intercepts the I/O requests targeted at a file system. By intercepting the request before it reaches its intended target file system, the filter driver can encrypt or decrypt the data buffer provided by the original target of the request. Even though there is a lot of encryption libraries in the market, but it is still very complex to develop a reliable transparent on access file encryption product. The EEFD is a mature commercial product. It provides a complete modular framework for the developers even without the driver development experience to build the on access file encryption software within a day. 
+[![Platform](https://img.shields.io/badge/Platform-Windows-blue.svg)](https://www.easefilter.com/)
+[![Language](https://img.shields.io/badge/Language-C%23%20%7C%20C%2B%2B%20%7C%20Python%20%7C%20Java%20%7C%20Rust-green.svg)](https://www.easefilter.com/kb/Programming.htm)
+[![Status](https://img.shields.io/badge/Status-Active-brightgreen.svg)]()
 
-![Trnasparent File Encryption](https://www.easefilter.com/Images/TransparentFileEncryption.png)
+Build robust, zero-trust endpoint security solutions with deep, kernel-level visibility and control. The **EaseFilter Comprehensive File Security SDK** abstracts away the steep learning curve of Windows kernel development, empowering developers to engineer enterprise-grade endpoint security applications (like EDR, DLP, and Antivirus systems) using standard user-mode APIs.
 
-## FIPS Compliant Encryption
+---
 
-The EEFD utilizes the Microsoft CNG encryption libraries with the AES algorithm. The AES Encryption algorithm (also known as the Rijndael algorithm) is a specification for the encryption of electronic data established by the U.S. National Institute of Standards and Technology (NIST) in 2001.  AES is a US FIPS 140-2 compliant symmetric block cipher algorithm.  It has a fixed block size of 128 bits, and a key size of 128, 192, or 256 bits.
+## 🛡️ Why Kernel-Level Security?
 
-## Per Process Access Restriction
+Relying solely on standard Windows Access Control Lists (ACLs) is no longer sufficient to protect enterprise data. Sophisticated malware, ransomware, and insider threats can bypass traditional perimeter defenses and user-mode security hooks. 
 
-The EEFD supports the per process access restriction for the on access file encryption. You an setup the whitelist or blacklist of the processes to the encrypted files. The whitelist process can read the encrypted file to get the clear text. The blacklist process only can get the encrypted raw data. The EEFD utilizes the [Isolation Mini Filter Driver](https://www.easefilter.com/kb/Isolation_Filter_Driver.htm) technology to implement two views of the encrypted file to the process. The unauthorized process will see the encrypted data view with the raw ciphertext. The authorized processes will see the decrypted data view with the plaintext.
+By operating as a **Windows Minifilter Driver**, EaseFilter sits directly in the I/O stack. If a file operation occurs—whether it's a document being opened by Excel or a malicious binary attempting to encrypt a system directory—the kernel intercepts it. If the kernel doesn't see it, it didn't happen.
 
-![Isolation Filter Driver](https://www.easefilter.com/images/IsolationFilter.png)
+## 🏗️ Architecture
 
-## The Encrypted File Header with DRM Embedded
+An endpoint security solution built with EaseFilter consists of core layers bridged by the SDK:
+![endpoint security](https://www.easefilter.com/Images/endpoint-security-architecture.jpg)
 
-The EEFD supports the encryption header with the custom digital rights management (DRM) data embedded to the encrypted file. With the custom DRM data, you can define your custom encryption access policies, it allows you to fully control the encrypted file access dynamically. You can grant, revoke or expire the encrypted file access at any time, even after the encrypted file has been sent out of your organization. You can develop the security application to implement the [secure file sharing](https://blog.easefilter.com/secure-file-sharing-with-drm/) solution with the EEFD.
+1. **The Kernel Layer:** A minifilter driver that intercepts every single file operation (read, write, delete, execute) *before* it happens, offering total interception and tamper resistance.
+2. **The User-Mode Layer:** Your custom application built with the SDK's APIs (C#, C++, Python, etc.) that evaluates rules and makes `Allow` or `Deny` decisions.
 
-![Secure File Sharing](https://www.easefilter.com/images/SecureSharing.png)
+---
 
-## High Performance For Encryption
+## ✨ Core Pillars & Practical Use Cases
 
-The CNG encryption library supports AES-NI (or the Intel Advanced Encryption Standard New Instructions; AES-NI). With the hardware-assisted support, it utilizes the hardware enhanced cryptography, it can achieve greater speeds and / or improved security than otherwise. The EEFD utilizes the AES block cipher algorithm, it allows you to encrypt or decrypt the encrypted file at any block (16 bytes). You can read the random block of the encrypted file without the whole file decryption needed. The EEFD integrates the block cipher operation in the same read or write IO, without the extra IO required. The block cipher improves the encryption or decryption performance dramatically. 
+### 1. Zero Trust Data Access (ZTDA) & Cryptographic Verification
+Implement a "default deny" policy for highly sensitive directories. Allow access only for cryptographically verified binaries.
 
-## The Use Cases with EEFD
+```csharp
+FileFilterRule ztdaRule = new FileFilterRule(@"C:\Finance\*");
 
-1. **Data encryption at rest.** Encryption at rest prevents the attacker from accessing the unencrypted data by ensuring the data is encrypted when on disk. 
-2. **Data protection.** Document encryption, file encryption is very important step for data protection, only the authorized users or processes can read the encrypted data, or will get the raw encrypted data.
-3. **Data loss prevention.** To prevent the data breach, your data is encrypted all the time, even your data was lost and found in an unauthorized place, they are protected against the unauthorized access.
-4. **Secure file sharing with DRM.** Encrypted your files with digital rights management data embedded into the encrypted header, protect, track and control your encrypted files anywhere anytime, you can grant or revoke the access control to any user at any time even the files were shared.
-   
-## A C# Transparent On Access File Encryption Example
+// 1. Deny all access by default
+ztdaRule.AccessFlags = FilterAPI.AccessFlag.LEAST_ACCESS_RIGHT; 
 
-Here is a c# on access file encryption example to demonstrate how to use the SDK. First you need to setup an encryption folder in computer A. You can configure the authorized processes and users who can read the encrypted file. Then you can setup the decryption folder in computer B if you want to distribute the encrypted file to the computer B. In order to access the encrypted file in computer B, you need to setup the authorized processes, only the authorized processes can access the encrypted files.
+// 2. Whitelist ONLY the verified custom application by signature/hash
+ztdaRule.AddTrustedProcessRight(
+    "ERP.exe", 
+    FilterAPI.ALLOW_MAX_ACCESS_RIGHT, 
+    "MyCompany-Digital-Signature", // Verifies certificate
+    "A1B2C3D4E5..."                // Verifies SHA-256 hash
+);
 
-![File Encryption Demo](https://www.easefilter.com/images/autoencryptdemo.png)
+FilterControl.AddFilterRule(ztdaRule);
+```
 
-1. Setup an auto encryption folder, all new created files in this folder will be encrypted automatically. The encrypted file will be decrypted automatically when the users from the whitelist access the files. It won't be decrypted when the users from the blacklist access the file, it will get the raw encrypted data.
-2. Setup an auto encryption folder, all new created files in this folder will be automatically encrypted, all processes will get the raw encrypted data when they read the encrypted files, so you can secure upload or share these files to the cloud.
-3. Setup the encryption on the go folder, files are not encrypted in this folder, the file will be encrypted automatically in memory when the user from the blacklist access the files. So, you can add the processes to the blacklist if you want to secure share the files for these processes.
+### 2. Adaptive Anti-Ransomware (The "Kill Switch")
+Block malicious file operations proactively by monitoring file entropy (randomness) before data is written to the disk.
 
-<pre><code class='language-mylanguage'>
-using System;
-using EaseFilter.FilterControl;
+```csharp
+FileFilterRule ransomwareRule = new FileFilterRule(@"C:\Users\*\Documents\*");
+ransomwareRule.ControlFileIOEventFilter = (ulong)ControlFileIOEvents.OnPreFileWrite;
 
-namespace AutoFileEncryption
+ransomwareRule.OnPreFileWrite += (sender, e) => 
 {
-    class Program
+    // High entropy often indicates encryption
+    if (CalculateEntropy(e.FileName) > 7.5) 
     {
-        static FilterControl filterControl = new FilterControl();
-
-        static void Main(string[] args)
-        {
-            string lastError = string.Empty;
-            string licenseKey = "Email us to request a trial key: info@easefilter.com";
-
-            FilterAPI.FilterType filterType = FilterAPI.FilterType.CONTROL_FILTER
-			| FilterAPI.FilterType.ENCRYPTION_FILTER | FilterAPI.FilterType.PROCESS_FILTER;
-            int serviceThreads = 5;
-            int connectionTimeOut = 10; //seconds
-
-            try
-            {
-                //copy the right Dlls to the current folder.
-                Utils.CopyOSPlatformDependentFiles(ref lastError);
-
-                if (!filterControl.StartFilter(filterType, serviceThreads, connectionTimeOut, licenseKey, ref lastError))
-                {
-                    Console.WriteLine("Start Filter Service failed with error:" + lastError);
-                    return;
-                }
-                        
-                //setup a file filter rule for folder encryptFolder
-                string encryptFolder = "c:\\encryptFolder\\*";
-                FileFilter fileFilter = new FileFilter(encryptFolder);
-
-                //enable the encryption for the filter rule.
-                fileFilter.EnableEncryption = true;
-
-                //get the 256bits encryption key with the passphrase
-                string passPhrase = "mypassword";
-                fileFilter.EncryptionKey = Utils.GetKeyByPassPhrase(passPhrase, 32);
-
-                //disable the decyrption right, read the raw encrypted data for all except the authorized processes or users.
-                fileFilter.EnableReadEncryptedData = false;
-
-                //setup the authorized processes to decrypt the encrypted files.
-                string authorizedProcessesForEncryptFolder = "notepad.exe;wordpad.exe";
-
-                string[] processNames = authorizedProcessesForEncryptFolder.Split(new char[] { ';' });
-                if (processNames.Length > 0)
-                {
-                    foreach (string processName in processNames)
-                    {
-                        if (processName.Trim().Length > 0)
-                        {
-                            //authorized the process with the read encrypted data right.
-                            fileFilter.ProcessNameAccessRightList.Add(processName, FilterAPI.ALLOW_MAX_RIGHT_ACCESS);
-                        }
-                    }
-                }
-
-                //setup the authorized users to decrypt the encrypted files.
-                string authorizedUsersForEncryptFolder = "domainName\\user1";
-
-                if (!string.IsNullOrEmpty(authorizedUsersForEncryptFolder) && !authorizedUsersForEncryptFolder.Equals("*"))
-                {
-                    string[] userNames = authorizedUsersForEncryptFolder.Split(new char[] { ';' });
-                    if (userNames.Length > 0)
-                    {
-                        foreach (string userName in userNames)
-                        {
-                            if (userName.Trim().Length > 0)
-                            {
-                                //authorized the user with the read encrypted data right.
-                                fileFilter.userAccessRightList.Add(userName, FilterAPI.ALLOW_MAX_RIGHT_ACCESS);
-                            }
-                        }
-                    }
-
-                    if (fileFilter.userAccessRightList.Count > 0)
-                    {
-                        //set black list for all other users except the white list users.
-                        uint accessFlag = FilterAPI.ALLOW_MAX_RIGHT_ACCESS & ~(uint)FilterAPI.AccessFlag.ALLOW_READ_ENCRYPTED_FILES;
-                        //disable the decryption right, read the raw encrypted data for all except the authorized users.
-                        fileFilter.userAccessRightList.Add("*", accessFlag);
-                    }
-                }
-
-                //add the encryption file filter rule to the filter control
-                filterControl.AddFilter(fileFilter);
-
-                //setup a file filter rule for folder decryptFolder
-                string decryptFolder = "c:\\decryptFolder\\*";                
-                FileFilter decryptFileFilter = new FileFilter(decryptFolder);
-
-                //enable the encryption for the filter rule.
-                decryptFileFilter.EnableEncryption = true;
-
-                //get the 256bits encryption key with the passphrase
-                decryptFileFilter.EncryptionKey = Utils.GetKeyByPassPhrase(passPhrase, 32);
-
-                //don't encrypt the new created file in the folder.
-                decryptFileFilter.EnableEncryptNewFile = false;
-
-                //disable the decyrption right, read the raw encrypted data for all except the authorized processes or users.
-                decryptFileFilter.EnableReadEncryptedData = false;
-
-                //setup authorized processes to decrypt the encrypted files.
-                string authorizedProcessesForDecryptFolder = "notepad.exe;wordpad.exe";
-
-                processNames = authorizedProcessesForDecryptFolder.Split(new char[] { ';' });
-                if (processNames.Length > 0)
-                {
-                    foreach (string processName in processNames)
-                    {
-                        if (processName.Trim().Length > 0)
-                        {
-                            //authorized the process with the read encrypted data right.
-                            decryptFileFilter.ProcessNameAccessRightList.Add(processName, FilterAPI.ALLOW_MAX_RIGHT_ACCESS);
-                        }
-                    }
-                }
-
-                filterControl.AddFilter(decryptFileFilter);
-
-                if (!filterControl.SendConfigSettingsToFilter(ref lastError))
-                {
-                    Console.WriteLine("SendConfigSettingsToFilter failed." + lastError);
-                    return;
-                }
-
-                Console.WriteLine("Start filter service succeeded.");
-
-                // Wait for the user to quit the program.
-                Console.WriteLine("Press 'q' to quit the sample.");
-                while (Console.Read() != 'q') ;
-
-                filterControl.StopFilter();
-
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Start filter service failed with error:" + ex.Message);
-            }
-
-        }
-
+        // Block the write operation proactively
+        e.ReturnStatus = NtStatus.Status.AccessDenied;
+        TerminateProcess(e.ProcessId); // Trigger EDR kill-switch
     }
-}
+};
+FilterControl.AddFilterRule(ransomwareRule);
+```
 
-</pre>
+### 3. Insider Threat & Data Loss Prevention (DLP)
+Stop data theft via USB drives or network shares by intercepting `IRP_MJ_WRITE` requests for confidential files.
 
-[Read more about auto file encryption example](https://www.easefilter.com/Forums_Files/AutoFileEncryption.htm)
+```csharp
+FileFilterRule dlpRule = new FileFilterRule(@"E:\*"); // Target USB drive
+dlpRule.ControlFileIOEventFilter = (ulong)ControlFileIOEvents.OnPreFileWrite;
 
+dlpRule.OnPreFileWrite += (sender, e) => 
+{
+    if (HasConfidentialTag(e.FileName)) 
+    {
+        // Deny the kernel-level write request 
+        e.ReturnStatus = NtStatus.Status.AccessDenied; 
+    }
+};
+FilterControl.AddFilterRule(dlpRule);
+```
+
+### 4. Forensic Auditing (The "Black Box")
+Capture unalterable, granular journal details for HIPAA or ISO 27001 compliance that user-mode logging often misses.
+
+```csharp
+FileFilterRule auditRule = new FileFilterRule(@"C:\PatientRecords\*");
+auditRule.ControlFileIOEventFilter = (ulong)(ControlFileIOEvents.OnPostFileRead | 
+                                             ControlFileIOEvents.OnPostFileWrite | 
+                                             ControlFileIOEvents.OnPostFileRename);
+
+auditRule.OnPostFileRead += (sender, e) => 
+{
+    string logEntry = $"[Audit] {e.UserName} ({e.ProcessName} - PID: {e.ProcessId}) " +
+                      $"read {e.FileName} at {DateTime.UtcNow} | Status: {e.IoStatus}";
+    LogToSIEM(logEntry);
+};
+FilterControl.AddFilterRule(auditRule);
+```
+
+### 5. Anti-Tampering (Self-Shielding)
+Protect your security agent by making its installation directory immutable, even against local Administrator or SYSTEM accounts.
+
+```csharp
+FileFilterRule selfDefenseRule = new FileFilterRule(@"C:\Program Files\MyEnterpriseEDR\*");
+
+// Remove Delete and Write flags by default
+selfDefenseRule.AccessFlags = (FilterAPI.AccessFlag)(FilterAPI.ALLOW_MAX_ACCESS_RIGHT 
+    & ~(uint)(FilterAPI.AccessFlag.ALLOW_FILE_DELETE | FilterAPI.AccessFlag.ALLOW_FILE_WRITE));
+
+// Explicitly whitelist ONLY the updater service
+selfDefenseRule.AddProcessRight("MyEDR_Updater.exe", FilterAPI.ALLOW_MAX_ACCESS_RIGHT);
+FilterControl.AddFilterRule(selfDefenseRule);
+```
 
 ## EaseFilter File System Filter Driver SDK Reference
 | Product Name | Description |
@@ -238,6 +156,18 @@ namespace AutoFileEncryption
 * [Filter Driver Developer Guide](https://www.easefilter.com/kb/DeveloperGuide.htm)
 * [MiniFilter Filter Driver Framework](https://www.easefilter.com/kb/minifilter-framework.htm)
 * [Isolation Filter Driver](https://www.easefilter.com/kb/Isolation_Filter_Driver.htm)
+
+## License
+
+This repository contains two distinct licensing categories:
+
+1. **Wrapper/Implementation Code (MIT License):** 
+   The source code, scripts, and configuration files provided directly in this repository are licensed under the [MIT License](LICENSE). You are free to modify, distribute, and use this specific integration code.
+
+2. **EaseFilter SDK (Commercial License):**
+   This project requires the EaseFilter SDK (including its binaries, filter drivers, and core libraries) to function. The EaseFilter SDK is **proprietary commercial software** and is strictly excluded from the MIT License.   
+   To use the EaseFilter SDK for commercial purposes or in a production environment, you must obtain a valid commercial license directly from [EaseFilter](https://www.easefilter.com/license.pdf).
+
 
 ## Support
 If you have questions or need help, please contact support@easefilter.com 
